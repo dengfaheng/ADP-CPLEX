@@ -125,7 +125,7 @@ public class ADPCPLEX {
 
                         numExpr3 += this.lambda * prob.get(j-1) * r.get(j-1);
                     }
-
+                    //TODO
                     if(sumX == 0){
                         expr3 = this.cplex.sum(0, expr2);
                     }else{
@@ -175,7 +175,7 @@ public class ADPCPLEX {
         return prob;
     }
 
-    //输入各产品的当前状态，输出各个产品的价格，当产品无货时，价格为无穷
+    //输入各产品的当前状态，输出各个产品的价格的排列组合，当产品无货时，价格为无穷
     private List<List<Double>> R(List<Integer> stateX){
         List<List<Double>> prices = new ArrayList<>();
         for(int i = 0; i < stateX.size(); ++i){
@@ -185,44 +185,44 @@ public class ADPCPLEX {
                 prices.add(this.productPrices.get(i));
             }
         }
-        return prices;
+        return getDescartes(prices);
     }
 
     public void outSolution() throws IloException {
 
     }
 
-    public static void main(String[] args) throws IloException {
+    public static void main1(String[] args) throws IloException {
         ADPCPLEX adpCplex = new ADPCPLEX();
         adpCplex.buildAndSolveModel();
 
 
     }
 
-    public static void main2(String[] args) throws Exception  {
-        List<Integer> cap1 = new ArrayList<>();
-        cap1.add(0);
-        cap1.add(1);
-        cap1.add(2);
-        List<Integer> cap2 = new ArrayList<>();
-        cap2.add(0);
-        cap2.add(1);
-        cap2.add(2);
-        cap2.add(3);
-        List<Integer> cap3 = new ArrayList<>();
-        cap3.add(0);
-        cap3.add(1);
-        cap3.add(2);
-        cap3.add(3);
-        cap3.add(4);
+    public static void main(String[] args) throws Exception  {
+        List<Double> cap1 = new ArrayList<>();
+        cap1.add(0.0);
+        cap1.add(0.1);
+        cap1.add(0.2);
+        List<Double> cap2 = new ArrayList<>();
+        cap2.add(0.0);
+        cap2.add(0.1);
+        cap2.add(0.2);
+        cap2.add(0.3);
+        List<Double> cap3 = new ArrayList<>();
+        cap3.add(0.0);
+        cap3.add(0.1);
+        cap3.add(0.2);
+        cap3.add(0.3);
+        cap3.add(0.4);
 
-        List<List<Integer>> listData = new ArrayList<>();
+        List<List<Double>> listData = new ArrayList<>();
         listData.add(cap1);
-        //listData.add(cap2);
-        //listData.add(cap3);
-        List<List<Integer>> lisReturn = getDescartes(listData);
+        listData.add(cap2);
+        listData.add(cap3);
+        List<List<Double>> lisReturn = getDescartes(listData);
         //System.out.println(lisReturn);
-        for( List<Integer> item : lisReturn)
+        for( List<Double> item : lisReturn)
         {
             System.out.println(item);
         }
