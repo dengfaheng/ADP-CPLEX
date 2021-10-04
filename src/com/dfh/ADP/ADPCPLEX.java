@@ -6,11 +6,9 @@ import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class ADPCPLEX {
@@ -39,16 +37,30 @@ public class ADPCPLEX {
     public ADPCPLEX() {
         int i, j;
         //读取相应的配置
-        this.productNr = 1;
+        this.productNr = 3;
+        int commonCap = 10;
+        this.T = 363;
+        this.lambda = 0.67541548;
+        this.beta = 0.37572;
+
         this.productsCap = new int[this.productNr+1];
-        this.T = 10;
-        this.lambda = 1;
+        for(i = 1; i <= this.productNr; ++i){
+            this.productsCap[i] = commonCap;
+        }
+
+        this.A = new double[]{0.0, 0.61068,0.905972,0.866734};
+
         this.productPrices = new ArrayList<>();
-        this.beta = 1;
-        this.A = new double[productNr+1];
+        List<Double> p1 = new ArrayList<>(Arrays.asList(2.01,1.8,1.61));
+        List<Double> p2 = new ArrayList<>(Arrays.asList(2.01,1.79,1.61));
+        List<Double> p3 = new ArrayList<>(Arrays.asList(1.99,1.8,1.6));
+        this.productPrices.add(p1);
+        this.productPrices.add(p2);
+        this.productPrices.add(p3);
+
 
         this.priceWithoutCap = new ArrayList<>();
-        this.priceWithoutCap.add(Double.POSITIVE_INFINITY);
+        this.priceWithoutCap.add(1e10);
 
         //分配内存空间
 
@@ -63,9 +75,9 @@ public class ADPCPLEX {
             statesList.add(productCapState);
         }
         this.X = getDescartes(statesList);
-        for( List<Integer> item : this.X) {
-            System.out.println(item);
-        }
+//        for( List<Integer> item : this.X) {
+//            System.out.println(item);
+//        }
 
 
         //分配内存
@@ -77,8 +89,8 @@ public class ADPCPLEX {
         int i, j, t;
         //model
         this.cplex = new IloCplex();
-        this.cplex.setParam(IloCplex.Param.Simplex.Tolerances.Optimality, 1e-9);
-        this.cplex.setParam(IloCplex.DoubleParam.TimeLimit, 7200);
+        this.cplex.setParam(IloCplex.Param.Simplex.Tolerances.Optimality, 1e-6);
+        //this.cplex.setParam(IloCplex.DoubleParam.TimeLimit, 7200);
         //this.cplex.setOut(null);
 
         //初始化变量
@@ -94,7 +106,7 @@ public class ADPCPLEX {
         //构建目标函数
         IloNumExpr obj = this.cplex.numExpr();
 
-        for(j = 1; j <= productNr; ++j){
+        for(j = 1; j <= this.productNr; ++j){
             obj = this.cplex.sum(obj, this.cplex.prod(this.productsCap[j], this.V[1][j]));
         }
         obj = this.cplex.sum(obj, this.theta[1]);
@@ -107,10 +119,12 @@ public class ADPCPLEX {
         for(t = 1; t <= this.T; ++t){
             expr1 = this.cplex.sum(this.theta[t], this.cplex.prod(-1, this.theta[t+1]));
             for(List<Integer> x : this.X){
+                //System.out.println("x = "+x);
                 int sumX = this.listSum(x);
                 //获取Rx
                 List<List<Double>> Rx = this.R(x);
                 for(List<Double> r : Rx){
+                    //System.out.println("r = "+r);
                     //获取P
                     List<Double> prob = this.P(r);
                     expr2 = this.cplex.numExpr();
@@ -125,24 +139,33 @@ public class ADPCPLEX {
 
                         numExpr3 += this.lambda * prob.get(j-1) * r.get(j-1);
                     }
+                    /*
                     //TODO
                     if(sumX == 0){
                         expr3 = this.cplex.sum(0, expr2);
                     }else{
                         expr3 = this.cplex.sum(expr1, expr2);
                     }
-                    this.cplex.addGe(expr3, numExpr3);
+                     */
+                    expr3 = this.cplex.sum(expr1, expr2);
                     constraintsNr++;
+                    //if(constraintsNr <= 19) continue;
+                    this.cplex.addGe(expr3, numExpr3, "mc"+constraintsNr);
+                   // constraintsNr++;
                 }
             }
         }
 
         System.out.println("constraints number > "+constraintsNr);
-
+        //this.cplex.exportModel("./ADP.lp");
         //求解
         if(this.cplex.solve()){
             this.cplexCost = this.cplex.getObjValue();
             System.out.println("objective value = "+this.cplexCost);
+            System.out.println("theta_1 = "+this.cplex.getValue(this.theta[1]));
+            for(j = 1; j <= this.productNr; ++j){
+                System.out.println("V[1]["+j+"] = " +this.cplex.getValue(this.V[1][j]));
+            }
         }else{
             System.out.println("can not solved!!!");
         }
@@ -188,18 +211,14 @@ public class ADPCPLEX {
         return getDescartes(prices);
     }
 
-    public void outSolution() throws IloException {
-
-    }
-
-    public static void main1(String[] args) throws IloException {
+    public static void main(String[] args) throws IloException {
         ADPCPLEX adpCplex = new ADPCPLEX();
         adpCplex.buildAndSolveModel();
 
 
     }
 
-    public static void main(String[] args) throws Exception  {
+    public static void main1(String[] args) throws Exception  {
         List<Double> cap1 = new ArrayList<>();
         cap1.add(0.0);
         cap1.add(0.1);
