@@ -114,7 +114,7 @@ public class ADPCPLEX {
                     this.buildAndSolveModel(line, fileName);
                 }catch (OutOfMemoryError e){
                     //把所有数据写出
-                    BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", true));
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", false));
                     bw.write(line+"\n");
                     bw.write("Constraint number: NA"+"\n");
                     bw.write("Number of Product: "+this.productNr+"\n");
@@ -268,7 +268,7 @@ public class ADPCPLEX {
         //求解
         if(this.cplex.solve()){
 	        //把所有数据写出
-	        BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", true));
+	        BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", false));
 	        bw.write(lineStr+"\n");
 	        bw.write("Constraint number: "+constraintsNr+"\n");
 	        bw.write("Number of Product: "+this.productNr+"\n");
@@ -292,6 +292,26 @@ public class ADPCPLEX {
             this.cplexCost = this.cplex.getObjValue();
             System.out.println("objective value = "+this.cplexCost);
             double theta1 = this.cplex.getValue(theta[1]);
+
+            //IloNumVar[] theta = new IloNumVar[this.T + 2]; // 1 to T+1
+            //        //实数变量
+            //        IloNumVar[][] v = new IloNumVar[this.T + 2][this.productNr + 1]; // 1 to T+1, 1 to this.productNr
+            List<Double> thetas = new ArrayList<>();
+            StringBuilder strBuilder = new StringBuilder();
+            strBuilder.append("[");
+            for(i = 1; i <= this.T + 1; ++i){
+                thetas.add(this.cplex.getValue(theta[i]));
+                List<Double> vi = new ArrayList<>();
+                for(j = 1; j <= this.productNr; ++j){
+                    vi.add(this.cplex.getValue(v[i][j]));
+                }
+                if(i == this.T + 1){
+                    strBuilder.append(Arrays.toString(vi.toArray())).append("]");
+                }else{
+                    strBuilder.append(Arrays.toString(vi.toArray())).append(", ");
+                }
+            }
+
             System.out.println("theta_1 = "+theta1);
             double[] V1 = new double[this.productNr+1];
             double[] V1Write = new double[this.productNr];
@@ -327,8 +347,8 @@ public class ADPCPLEX {
 	        bw.write("LP status        : "+this.cplex.getStatus()+"\n");
 	        bw.write("LP Time(s)       : "+(this.cplex.getCplexTime()-this.startTime)+"\n");
             bw.write("LP objective     : "+this.cplexCost+"\n");
-            bw.write("theta_1          : "+theta1+"\n");
-            bw.write("V[1]             : " +Arrays.toString(V1Write)+"\n");
+            bw.write("theta            : "+Arrays.toString(thetas.toArray())+"\n");
+            bw.write("V                : " +strBuilder+"\n");
             bw.write("R                : "+totalR+"\n");
             bw.write("\n");
             bw.flush();
@@ -336,7 +356,7 @@ public class ADPCPLEX {
         }else{
 
             //把所有数据写出
-            BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", true));
+            BufferedWriter bw = new BufferedWriter(new FileWriter(dir+fileName+"_out.txt", false));
             bw.write(lineStr+"\n");
             bw.write("Constraint number: "+constraintsNr+"\n");
             bw.write("Number of Product: "+this.productNr+"\n");
